@@ -305,6 +305,7 @@ Usage:
 Options:
     -p, --port PORT     Connect to PORT [default: 443].
     --http              Send a basic HTTP GET request for /.
+    --post              Send a basic HTTP POST request for /.
     --cafile CAFILE     Read root certificates from CAFILE.
     --auth-key KEY      Read client authentication key from KEY.
     --auth-certs CERTS  Read client authentication certificates from CERTS.
@@ -329,6 +330,7 @@ Options:
 struct Args {
     flag_port: Option<u16>,
     flag_http: bool,
+    flag_post: bool,
     flag_verbose: bool,
     flag_protover: Vec<String>,
     flag_suite: Vec<String>,
@@ -585,11 +587,15 @@ fn main() {
     let mut tlsclient = TlsClient::new(sock, server_name, config);
 
     if args.flag_http {
-        let httpreq = format!(
-            "GET / HTTP/1.0\r\nHost: {}\r\nConnection: \
-                               close\r\nAccept-Encoding: identity\r\n\r\n",
-            args.arg_hostname
-        );
+        let httpreq = if args.flag_post { format!(
+                "POST /topics/hello?qos=1 HTTP/1.1\r\nHost: {}\r\nUser-Agent: \
+                rustls/tlsclient\r\nAccept: */*\r\nConnection: close\r\n\r\n",
+                args.arg_hostname)
+            }else { format!(
+                "GET / HTTP/1.0\r\nHost: {}\r\nConnection: \
+                                close\r\nAccept-Encoding: identity\r\n\r\n",
+                args.arg_hostname)
+            };
         tlsclient
             .write_all(httpreq.as_bytes())
             .unwrap();
